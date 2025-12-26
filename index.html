@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>虛擬大富翁（LIFF 手機版 MVP）</title>
+  <style>
+    :root{
+      --bg:#0B0F17;
+      --card:#121826;
+      --card2:#0F1522;
+      --line:#1F2937;
+      --text:#E5E7EB;
+      --muted:#9CA3AF;
+      --accent:#22C55E;   /* LINE-ish green */
+      --accent2:#38BDF8;  /* cyan for info */
+      --danger:#FB7185;
+      --warn:#FBBF24;
+      --radius:18px;
+      --shadow: 0 8px 30px rgba(0,0,0,.28);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      padding-top: var(--safe-top);
+    }
+    .app{
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 12px 12px calc(110px + var(--safe-bottom)); /* leave space for bottom bar */
+    }
+
+    /* Top header */
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11,15,23,.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 10px 12px;
+      margin: -12px -12px 12px;
+    }
+    .toprow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .title{
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size:16px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .badge{
+      font-size:12px;
+      color: rgba(34,197,94,.95);
+      border: 1px solid rgba(34,197,94,.35);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(34,197,94,.10);
+      white-space:nowrap;
+    }
+    .meta{
+      margin-top:8px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      font-size:12px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      padding: 6px 10px;
+      border-radius: 999px;
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+    /* Cards */
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .card + .card{ margin-top: 12px; }
+    .card h2{
+      margin:0 0 10px;
+      font-size:13px;
+      font-weight:700;
+      color: var(--muted);
+      letter-spacing:.2px;
+    }
+
+    /* Player chips */
+    .chips{
+      display:flex;
+      gap:10px;
+      overflow:auto;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chip{
+      min-width: 180px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+    .chip.active{
+      border-color: rgba(56,189,248,.45);
+      box-shadow: 0 0 0 2px rgba(56,189,248,.10) inset;
+    }
+    .chip .name{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      font-weight:800; font-size:14px;
+    }
+    .chip .sub{ font-size:12px; color: var(--muted); margin-top:2px; }
+    .chip .stats{
+      margin-top:8px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+    }
+    .kv{
+      border:1px solid rgba(255,255,255,.07);
+      background: rgba(0,0,0,.12);
+      border-radius: 12px;
+      padding:8px;
+      font-size:12px;
+      color: var(--muted);
+    }
+    .kv b{ display:block; color:var(--text); font-size:14px; margin-top:3px; }
+
+    /* Event */
+    .eventTitle{
+      font-size:18px;
+      font-weight:900;
+      margin: 0 0 6px;
+      line-height:1.25;
+    }
+    .eventText{
+      margin:0;
+      color: rgba(229,231,235,.92);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .hintRow{
+      margin-top: 10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    /* Acting selector */
+    .row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, button{
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: #0C1220;
+      color: var(--text);
+      padding: 11px 12px;
+      font-size: 14px;
+      outline:none;
+    }
+    button{ cursor:pointer; }
+    button.primary{
+      background: rgba(34,197,94,.14);
+      border-color: rgba(34,197,94,.35);
+    }
+    button.ghost{
+      background: transparent;
+    }
+    button.danger{
+      background: rgba(251,113,133,.12);
+      border-color: rgba(251,113,133,.35);
+    }
+
+    /* Feedback */
+    .feedback{
+      white-space: pre-wrap;
+      line-height: 1.6;
+      font-size: 14px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+      color: rgba(229,231,235,.92);
+    }
+
+    /* Collapsible log */
+    details{
+      border-radius: var(--radius);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      padding: 12px 14px;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .log{
+      max-height: 340px;
+      overflow:auto;
+      padding: 0 14px 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .logItem{
+      padding: 10px 0;
+      border-top: 1px dashed rgba(255,255,255,.10);
+    }
+    .logItem:first-child{ border-top:none; }
+    .logTop{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+      font-size: 12px; color: var(--muted);
+    }
+    .logTop .money{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .logSub{
+      margin-top:4px;
+      font-size: 12px;
+      color: rgba(156,163,175,.95);
+      line-height:1.4;
+    }
+
+    /* Bottom action bar */
+    .bottomBar{
+      position: fixed;
+      left:0; right:0; bottom:0;
+      padding: 10px 12px calc(10px + var(--safe-bottom));
+      background: rgba(11,15,23,.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255,255,255,.06);
+      z-index: 30;
+    }
+    .bottomInner{
+      max-width: 520px;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .actionBtn{
+      padding: 14px 12px;
+      border-radius: 16px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: #0C1220;
+      text-align:left;
+      min-height: 54px;
+    }
+    .actionBtn b{
+      color: var(--accent2);
+      margin-right:6px;
+    }
+    .actionBtn.disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    .note{
+      color: rgba(156,163,175,.95);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">
+        虛擬大富翁
+        <span class="badge">LIFF Mobile MVP</span>
+      </div>
+      <button class="ghost" id="btnReset">重開</button>
+    </div>
+    <div class="meta">
+      <span class="pill">房間 <span id="roomCode" class="mono"></span></span>
+      <span class="pill">回合 <span id="turnIndex"></span></span>
+      <span class="pill">輪到 <span id="currentPlayerName"></span></span>
+      <span class="pill">截止 <span id="deadline" class="mono"></span></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="card">
+      <h2>身份（模擬 LIFF 的使用者）</h2>
+      <div class="row">
+        <select id="actingUid" style="flex:1; min-width: 220px;"></select>
+        <button class="ghost" id="btnSync">切換</button>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="ghost" id="btnTimeout">超時自動選 C</button>
+        <button class="ghost" id="btnNext">跳下一回合</button>
+        <button class="danger" id="btnClear">清除快取</button>
+      </div>
+      <div class="note">
+        ✅ 手機版動線：看事件 → 底部 A/B/C 一鍵選 → 回饋/戰報自動更新。<br>
+        之後接 LIFF + Firestore 時，UI 幾乎不用改。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>玩家狀態</h2>
+      <div class="chips" id="playerChips"></div>
+    </div>
+
+    <div class="card">
+      <h2>本回合事件</h2>
+      <div class="eventTitle" id="eventTitle">—</div>
+      <p class="eventText" id="eventText">—</p>
+      <div class="hintRow">
+        <span class="pill">事件ID <span id="eventId" class="mono"></span></span>
+        <span class="pill">目前身份 <span id="actingName"></span></span>
+        <span class="pill">可操作 <span id="canAct"></span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>回饋（結果 → 共感 → 標籤 → 下一步）</h2>
+      <div class="feedback" id="feedback">（做出選擇後才會出現回饋）</div>
+    </div>
+
+    <details class="card" open>
+      <summary>
+        <span>戰報串（點一條可回看回饋）</span>
+        <span class="pill" id="logCount">0</span>
+      </summary>
+      <div class="log" id="log"></div>
+    </details>
+  </div>
+
+  <!-- Bottom fixed actions -->
+  <div class="bottomBar">
+    <div class="bottomInner">
+      <button class="actionBtn" id="choiceA"></button>
+      <button class="actionBtn" id="choiceB"></button>
+      <button class="actionBtn" id="choiceC"></button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const LS_KEY = "vmonopoly_liff_mobile_v1";
+
+  const EVENTS = [
+    {
+      id:"EVT_001",
+      title:"朋友說這檔要噴",
+      text:"群組突然狂刷『今天不買明天後悔』，還貼了一張很像很厲害的 K 線。你現在手上現金不多，但心很癢。",
+      choices:{
+        A:{ label:"全押（爽一把）", effect:{ cash:[-4000, 2000], mood:-5, risk:+12, debt:+0 }, tag:"跟風＋集中押注" },
+        B:{ label:"買 20% 試水溫", effect:{ cash:[-800, 500], mood:+0, risk:+5, debt:+0 }, tag:"分散嘗試" },
+        C:{ label:"不理他，去睡覺", effect:{ cash:0, mood:+2, risk:-2, debt:+0 }, tag:"保守觀望" },
+      }
+    },
+    {
+      id:"EVT_002",
+      title:"月底帳單爆擊",
+      text:"信用卡帳單來了，你發現上月『小確幸』累積成大確幸。你有三種處理方式。",
+      choices:{
+        A:{ label:"最低應繳先撐（延後處理）", effect:{ cash:-800, mood:+1, risk:+6, debt:+1500 }, tag:"延後問題" },
+        B:{ label:"硬著頭皮全繳（很痛）", effect:{ cash:-2000, mood:-2, risk:-3, debt:+0 }, tag:"止血型" },
+        C:{ label:"跟朋友借一點（尷尬但活著）", effect:{ cash:-1200, mood:-3, risk:+2, debt:+800 }, tag:"短期拆彈" },
+      }
+    },
+    {
+      id:"EVT_003",
+      title:"副業突然有單",
+      text:"朋友丟你一個急單，做完可能小賺，但會讓你這週超累。你要接嗎？",
+      choices:{
+        A:{ label:"接！錢比較重要", effect:{ cash:[500, 2500], mood:-3, risk:+2, debt:+0 }, tag:"衝刺型" },
+        B:{ label:"談條件再接（不急著跪）", effect:{ cash:[300, 1500], mood:-1, risk:+1, debt:+0 }, tag:"談判型" },
+        C:{ label:"拒絕，保住生活", effect:{ cash:0, mood:+3, risk:-1, debt:+0 }, tag:"生活優先" },
+      }
+    },
+    {
+      id:"EVT_004",
+      title:"市場突然大跌",
+      text:"你滑到新聞：『利空』、『恐慌』、『崩』。你沒時間做功課，但你必須選一個動作。",
+      choices:{
+        A:{ label:"加碼攤平（賭反彈）", effect:{ cash:[-1500, 2200], mood:-2, risk:+10, debt:+0 }, tag:"逆勢押注" },
+        B:{ label:"先減碼（活著比較重要）", effect:{ cash:[-300, 800], mood:+1, risk:-4, debt:+0 }, tag:"風控優先" },
+        C:{ label:"關掉 App（不看就不痛）", effect:{ cash:0, mood:+2, risk:+1, debt:+0 }, tag:"逃避風險" },
+      }
+    },
+    {
+      id:"EVT_005",
+      title:"你被拉進理財群",
+      text:"有人一直丟『必勝策略』，還說『你不進就是落後』。你會怎麼反應？",
+      choices:{
+        A:{ label:"跟著做（怕錯過）", effect:{ cash:[-1200, 1600], mood:-1, risk:+8, debt:+0 }, tag:"FOMO 跟單" },
+        B:{ label:"只看不說（先觀察）", effect:{ cash:0, mood:+1, risk:-1, debt:+0 }, tag:"觀察型" },
+        C:{ label:"退出（清靜）", effect:{ cash:0, mood:+3, risk:-2, debt:+0 }, tag:"斷噪音" },
+      }
+    },
+  ];
+
+  const $ = (id)=>document.getElementById(id);
+  const clamp = (n,min,max)=>Math.max(min, Math.min(max,n));
+  const fmtSigned = (n)=> (n>0?"+":"")+n;
+
+  function hash(str){
+    let h = 0;
+    for(let i=0;i<str.length;i++){ h = (h<<5) - h + str.charCodeAt(i); h |= 0; }
+    return h;
+  }
+
+  function pickEvent(turnIndex, seed){
+    const idx = (hash(seed+"_"+turnIndex) % EVENTS.length + EVENTS.length) % EVENTS.length;
+    return EVENTS[idx];
+  }
+
+  function rollCashDelta(effectCash){
+    if(Array.isArray(effectCash)){
+      const [a,b] = effectCash;
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+    return effectCash;
+  }
+
+  function hintByTag(tag){
+    const map = {
+      "跟風＋集中押注":"先用 10–20% 試水溫，留子彈給下一回合；活得久通常比一次爆賺更重要。",
+      "分散嘗試":"節奏不錯：你保留了操作空間。下次可以再加『停 10 秒』確認風險。",
+      "保守觀望":"觀望不是弱，是策略。下次挑一個小步驟（固定額度）建立存在感。",
+      "延後問題":"拖延會把利息變成怪物。下次先『關掉最痛的洞』再談其他。",
+      "止血型":"很痛但乾淨。下次給自己一個小獎勵，避免反彈報復性消費。",
+      "短期拆彈":"你選擇先活著。下次加上『還款計畫』，把尷尬變可控。",
+      "衝刺型":"你賺到機會但也在燃燒。下次設定『接單上限』避免心情歸零。",
+      "談判型":"用條件換回主動權很成熟。下次把談到的內容記錄，方便複製。",
+      "生活優先":"你把自己放第一位。若想增現金流，找低負擔副業先試一點點。",
+      "逆勢押注":"高波動玩法。下次拆單分兩回合進場，降低一次決定的壓力。",
+      "風控優先":"你留住了後面操作的機會。下次定義『什麼情況才加回來』。",
+      "逃避風險":"關掉 App 能止痛，但痛點會累積。下次只看總資產，不看單一標的。",
+      "FOMO 跟單":"怕錯過很正常。下次問：『我願意承受最壞情況嗎？』不願意就縮倉位。",
+      "觀察型":"你在收集資訊。下次設觀察期限：2 回合不改善就退出，避免無限拖。",
+      "斷噪音":"噪音會偷走判斷力。下次把省下的心力拿去做一個可控的小策略。"
+    };
+    return map[tag] || "下次遇到類似情境，先把風險縮小一格，再做決定。";
+  }
+
+  function makeFeedback({result, tag}){
+    const empath = [
+      "老實說，這種情境很多人都會選得很快。",
+      "你這個選擇很人性，不需要自責。",
+      "看到這種局面，心癢/心慌都很正常。",
+      "第一次這樣玩很常見，重點是你有沒有學到一點點。"
+    ][Math.floor(Math.random()*4)];
+    return [
+      `本回合結果：現金 ${fmtSigned(result.cashDelta)}｜負債 ${fmtSigned(result.debtDelta)}｜心情 ${fmtSigned(result.moodDelta)}｜風險 ${fmtSigned(result.riskDelta)}`,
+      "",
+      empath,
+      `你剛剛做的是【${tag}】的決策。`,
+      "",
+      `如果再來一次：${hintByTag(tag)}`
+    ].join("\n");
+  }
+
+  function newRoomState(){
+    const roomCode = Math.random().toString(36).slice(2,8).toUpperCase();
+    const names = ["阿宏","小羽","Rex","Mina","阿哲","Shan","凱文","Lulu"];
+    const n = 4;
+    const players = {};
+    const playerUids = [];
+    for(let i=0;i<n;i++){
+      const uid = "uid"+(i+1);
+      playerUids.push(uid);
+      players[uid] = {
+        uid,
+        displayName: names[i],
+        cash: 10000, debt: 0, mood: 70, risk: 50,
+        lastActiveAt: Date.now()
+      };
+    }
+    const turnIndex = 1;
+    const ev = pickEvent(turnIndex, roomCode);
+    const now = Date.now();
+    return {
+      room:{
+        roomCode,
+        status:"playing",
+        playerUids,
+        turnIndex,
+        currentPlayerUid: playerUids[0],
+        currentTurnId: "t"+String(turnIndex).padStart(4,"0"),
+        currentEventId: ev.id,
+        turnDeadlineAt: now + 6*60*60*1000,
+        seed: roomCode
+      },
+      players,
+      turns:[]
+    };
+  }
+
+  function loadState(){
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+  function saveState(s){ localStorage.setItem(LS_KEY, JSON.stringify(s)); }
+
+  function advanceTurn(state){
+    const room = state.room;
+    const idx = room.playerUids.indexOf(room.currentPlayerUid);
+    const nextIdx = (idx + 1) % room.playerUids.length;
+
+    room.turnIndex += 1;
+    room.currentPlayerUid = room.playerUids[nextIdx];
+    room.currentTurnId = "t"+String(room.turnIndex).padStart(4,"0");
+
+    const ev = pickEvent(room.turnIndex, room.seed);
+    room.currentEventId = ev.id;
+    room.turnDeadlineAt = Date.now() + 6*60*60*1000;
+
+    saveState(state);
+    render(state);
+  }
+
+  function resolveChoice(state, key){
+    const room = state.room;
+    const uid = room.currentPlayerUid;
+    const player = state.players[uid];
+
+    const ev = EVENTS.find(e=>e.id===room.currentEventId);
+    const choice = ev.choices[key];
+
+    const cashDelta = rollCashDelta(choice.effect.cash);
+    const moodDelta = choice.effect.mood || 0;
+    const riskDelta = choice.effect.risk || 0;
+    const debtDelta = choice.effect.debt || 0;
+
+    player.cash = clamp(player.cash + cashDelta, -999999, 999999);
+    player.debt = clamp(player.debt + debtDelta, 0, 999999);
+    player.mood = clamp(player.mood + moodDelta, 0, 100);
+    player.risk = clamp(player.risk + riskDelta, 0, 100);
+    player.lastActiveAt = Date.now();
+
+    const turn = {
+      turnId: room.currentTurnId,
+      turnIndex: room.turnIndex,
+      playerUid: uid,
+      playerName: player.displayName,
+      eventId: ev.id,
+      eventTitle: ev.title,
+      choice: key,
+      choiceLabel: choice.label,
+      resolvedAt: Date.now(),
+      result: { cashDelta, moodDelta, riskDelta, debtDelta },
+      tag: choice.tag,
+      feedback: makeFeedback({ result:{ cashDelta, moodDelta, riskDelta, debtDelta }, tag: choice.tag })
+    };
+    state.turns.push(turn);
+    saveState(state);
+    return turn;
+  }
+
+  function render(state){
+    const room = state.room;
+    const ev = EVENTS.find(e=>e.id===room.currentEventId);
+
+    $("roomCode").textContent = room.roomCode;
+    $("turnIndex").textContent = room.turnIndex;
+    $("currentPlayerName").textContent = state.players[room.currentPlayerUid].displayName;
+    $("deadline").textContent = new Date(room.turnDeadlineAt).toLocaleString("zh-TW",{hour12:false});
+    $("eventTitle").textContent = ev.title;
+    $("eventText").textContent = ev.text;
+    $("eventId").textContent = ev.id;
+
+    // acting selector
+    const sel = $("actingUid");
+    const prev = sel.value;
+    sel.innerHTML = "";
+    room.playerUids.forEach(uid=>{
+      const opt = document.createElement("option");
+      opt.value = uid;
+      opt.textContent = state.players[uid].displayName;
+      sel.appendChild(opt);
+    });
+    sel.value = prev || room.playerUids[0];
+
+    const actingUid = sel.value;
+    const actingName = state.players[actingUid].displayName;
+    $("actingName").textContent = actingName;
+
+    const canAct = actingUid === room.currentPlayerUid;
+    $("canAct").textContent = canAct ? "是 ✅" : "否 ❌";
+
+    // chips
+    const chips = $("playerChips");
+    chips.innerHTML = "";
+    room.playerUids.forEach(uid=>{
+      const p = state.players[uid];
+      const chip = document.createElement("div");
+      chip.className = "chip" + (uid===room.currentPlayerUid ? " active":"");
+      chip.innerHTML = `
+        <div class="name">
+          <span>${p.displayName}</span>
+          <span class="pill" style="padding:4px 8px; font-size:11px;">${uid===room.currentPlayerUid ? "本回合" : ""}</span>
+        </div>
+        <div class="sub mono">${uid}</div>
+        <div class="stats">
+          <div class="kv">現金<b>${p.cash}</b></div>
+          <div class="kv">負債<b>${p.debt}</b></div>
+          <div class="kv">心情<b>${p.mood}</b></div>
+          <div class="kv">風險<b>${p.risk}</b></div>
+        </div>
+      `;
+      chips.appendChild(chip);
+    });
+
+    // bottom buttons
+    setAction("choiceA","A",ev.choices.A.label, canAct, state);
+    setAction("choiceB","B",ev.choices.B.label, canAct, state);
+    setAction("choiceC","C",ev.choices.C.label, canAct, state);
+
+    // log
+    const turns = state.turns.slice().reverse();
+    $("logCount").textContent = turns.length;
+    const log = $("log");
+    log.innerHTML = "";
+    if(turns.length===0){
+      log.innerHTML = `<div style="padding:12px 0; color: var(--muted); font-size:13px;">（尚無戰報，先在底部選 A/B/C）</div>`;
+    }else{
+      turns.forEach(t=>{
+        const moneyColor = t.result.cashDelta >= 0 ? "var(--accent)" : "var(--danger)";
+        const item = document.createElement("div");
+        item.className = "logItem";
+        item.innerHTML = `
+          <div class="logTop">
+            <div class="mono">第${t.turnIndex}回合｜${t.playerName} 選${t.choice}｜${t.eventTitle}</div>
+            <div class="money" style="color:${moneyColor};">現金 ${fmtSigned(t.result.cashDelta)}</div>
+          </div>
+          <div class="logSub">負債 ${fmtSigned(t.result.debtDelta)}｜心情 ${fmtSigned(t.result.moodDelta)}｜風險 ${fmtSigned(t.result.riskDelta)}｜標籤：<span class="mono">${t.tag}</span></div>
+        `;
+        item.onclick = ()=>{ $("feedback").textContent = t.feedback; };
+        log.appendChild(item);
+      });
+    }
+  }
+
+  function setAction(btnId, key, label, canAct, state){
+    const btn = $(btnId);
+    btn.innerHTML = `<b>${key}.</b> ${label}`;
+    btn.classList.toggle("disabled", !canAct);
+    btn.onclick = ()=>{
+      if(!canAct) return alert("現在不是你的回合（切換身份到本回合玩家）");
+      const turn = resolveChoice(state, key);
+      $("feedback").textContent = turn.feedback;
+      advanceTurn(state);
+      // scroll log to top (newest visible)
+      setTimeout(()=>{ $("log").scrollTop = 0; }, 0);
+    };
+  }
+
+  function boot(){
+    let state = loadState();
+    if(!state){ state = newRoomState(); saveState(state); }
+
+    render(state);
+
+    $("actingUid").onchange = ()=>{ render(loadState()); };
+    $("btnSync").onclick = ()=>{ render(loadState()); };
+
+    $("btnTimeout").onclick = ()=>{
+      const s = loadState();
+      const turn = resolveChoice(s, "C");
+      $("feedback").textContent = "【系統超時自動選 C】\n\n" + turn.feedback;
+      advanceTurn(s);
+    };
+
+    $("btnNext").onclick = ()=> advanceTurn(loadState());
+
+    $("btnClear").onclick = ()=>{
+      localStorage.removeItem(LS_KEY);
+      alert("已清除快取。重新整理會產生新房間。");
+    };
+
+    $("btnReset").onclick = ()=>{
+      const s = newRoomState();
+      saveState(s);
+      $("feedback").textContent = "（做出選擇後才會出現回饋）";
+      render(s);
+    };
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
